@@ -2,28 +2,18 @@ name: Build and Release BranchSwitcher
 
 on:
   push:
-    branches:
-      - master
     tags:
       - 'v*'
-
-  pull_request:
-    branches:
-      - master
-
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-
   build-windows:
     runs-on: windows-latest
 
     steps:
-
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup .NET 8
@@ -34,14 +24,7 @@ jobs:
       - name: Restore
         run: dotnet restore .\BranchSwitcher\BranchSwitcher.csproj
 
-      - name: Build
-        run: >
-          dotnet build
-          .\BranchSwitcher\BranchSwitcher.csproj
-          -c Release
-          --no-restore
-
-      - name: Publish Windows x64
+      - name: Publish
         run: >
           dotnet publish
           .\BranchSwitcher\BranchSwitcher.csproj
@@ -50,7 +33,6 @@ jobs:
           --self-contained true
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
-          -p:DebugType=None
           -o .\publish
 
       - name: Copy configs
@@ -62,31 +44,18 @@ jobs:
               Copy-Item ".\configs\*.conf" ".\publish\configs\" -Force
           }
 
-      - name: Copy user guide
+      - name: Copy documentation
         shell: pwsh
         run: |
           if (Test-Path ".\user-guide.pdf") {
-              Copy-Item ".\user-guide.pdf" ".\publish\user-guide.pdf" -Force
+              Copy-Item ".\user-guide.pdf" ".\publish\user-guide.pdf"
           }
 
-      - name: Copy example settings
-        shell: pwsh
-        run: |
           if (Test-Path ".\BranchSwitcher\settings.example.json") {
-              Copy-Item `
-                ".\BranchSwitcher\settings.example.json" `
-                ".\publish\settings.example.json" `
-                -Force
+              Copy-Item ".\BranchSwitcher\settings.example.json" ".\publish\settings.example.json"
           }
 
-      - name: Verify executable
-        shell: pwsh
-        run: |
-          if (!(Test-Path ".\publish\BranchSwitcher.exe")) {
-              throw "BranchSwitcher.exe non è stato generato."
-          }
-
-      - name: Create distribution ZIP
+      - name: Create ZIP
         shell: pwsh
         run: |
           Compress-Archive `
@@ -94,17 +63,7 @@ jobs:
             -DestinationPath ".\BranchSwitcher-Windows-x64.zip" `
             -Force
 
-      # Artifact sempre disponibile dal run Actions
-      - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: BranchSwitcher-Windows-x64
-          path: BranchSwitcher-Windows-x64.zip
-          if-no-files-found: error
-
-      # Release SOLO se il workflow è partito da un tag v*
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
