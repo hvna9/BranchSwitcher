@@ -1,4 +1,4 @@
-# BranchSwitcher
+# BranchSwitcher 
 
 <p align="center">
   <img src="docs/images/app-icon.png" width="150" alt="BranchSwitcher icon">
