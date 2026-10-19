@@ -1,0 +1,95 @@
+name: Build BranchSwitcher Windows
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore .\BranchSwitcher\BranchSwitcher.csproj
+
+      - name: Build
+        run: >
+          dotnet build
+          .\BranchSwitcher\BranchSwitcher.csproj
+          -c Release
+          --no-restore
+
+      - name: Publish Windows x64
+        run: >
+          dotnet publish
+          .\BranchSwitcher\BranchSwitcher.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=None
+          -o .\publish
+
+      - name: Copy configs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ".\publish\configs"
+
+          if (Test-Path ".\configs") {
+              Copy-Item ".\configs\*.conf" ".\publish\configs\" -Force
+          }
+
+      - name: Copy user guide
+        shell: pwsh
+        run: |
+          if (Test-Path ".\user-guide.pdf") {
+              Copy-Item ".\user-guide.pdf" ".\publish\user-guide.pdf" -Force
+          }
+
+      - name: Copy example settings
+        shell: pwsh
+        run: |
+          if (Test-Path ".\BranchSwitcher\settings.example.json") {
+              Copy-Item `
+                ".\BranchSwitcher\settings.example.json" `
+                ".\publish\settings.example.json" `
+                -Force
+          }
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (!(Test-Path ".\publish\BranchSwitcher.exe")) {
+              throw "BranchSwitcher.exe non è stato generato."
+          }
+
+          Get-ChildItem ".\publish" -Recurse
+
+      - name: Create distribution ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path ".\publish\*" `
+            -DestinationPath ".\BranchSwitcher-Windows-x64.zip" `
+            -Force
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: BranchSwitcher-Windows-x64
+          path: BranchSwitcher-Windows-x64.zip
+          if-no-files-found: error
