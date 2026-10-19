@@ -1,19 +1,28 @@
-name: Build BranchSwitcher Windows
+name: Build and Release BranchSwitcher
 
 on:
   push:
     branches:
       - master
+    tags:
+      - 'v*'
+
   pull_request:
     branches:
       - master
+
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+
   build-windows:
     runs-on: windows-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -77,8 +86,6 @@ jobs:
               throw "BranchSwitcher.exe non è stato generato."
           }
 
-          Get-ChildItem ".\publish" -Recurse
-
       - name: Create distribution ZIP
         shell: pwsh
         run: |
@@ -87,9 +94,22 @@ jobs:
             -DestinationPath ".\BranchSwitcher-Windows-x64.zip" `
             -Force
 
-      - name: Upload Windows package
+      # Artifact sempre disponibile dal run Actions
+      - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: BranchSwitcher-Windows-x64
           path: BranchSwitcher-Windows-x64.zip
           if-no-files-found: error
+
+      # Release SOLO se il workflow è partito da un tag v*
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            ".\BranchSwitcher-Windows-x64.zip" `
+            --title "BranchSwitcher ${{ github.ref_name }}" `
+            --generate-notes
