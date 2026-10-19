@@ -1,0 +1,12 @@
+{
+  "ConfigsDirectory": "configs",
+  "GitExecutable": "git",
+  "Repositories": {
+    "service-api": "C:\\Workspace\\ProjectSuite\\Services\\service-api",
+    "service-admin": "C:\\Workspace\\ProjectSuite\\Services\\service-admin",
+    "service-worker": "C:\\Workspace\\ProjectSuite\\Services\\service-worker",
+    "shared-utils": "C:\\Workspace\\ProjectSuite\\Libraries\\shared-utils",
+    "domain-model": "C:\\Workspace\\ProjectSuite\\Libraries\\domain-model",
+    "data-parser": "C:\\Workspace\\ProjectSuite\\Libraries\\data-parser"
+  }
+}
